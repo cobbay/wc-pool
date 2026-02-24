@@ -23,7 +23,7 @@ export default function UserDisplay() {
             {userName}
           </span>
           <a
-            href="/api/auth/logout"
+            href="/auth/logout"
             className="flex h-10 items-center rounded-lg bg-gray-600 px-4 text-sm font-medium text-white transition-colors hover:bg-gray-700"
           >
             Logout
@@ -58,7 +58,7 @@ export default function UserDisplay() {
                 </div>
                 
                 <a
-                  href="/api/auth/logout"
+                  href="/auth/logout"
                   className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
                 >
                   Logout
@@ -74,7 +74,7 @@ export default function UserDisplay() {
   // Not logged in - show login button
   return (
     <a
-      href="/api/auth/login"
+      href="/auth/login"
       className="flex h-10 items-center rounded-lg bg-blue-600 px-4 text-sm font-medium text-white transition-colors hover:bg-blue-700"
     >
       Login

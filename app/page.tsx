@@ -28,7 +28,7 @@ export default function Home() {
             Join the world class gaming experience. Sign in to get started!
           </p>
           <a
-            href="/api/auth/login"
+            href="/auth/login"
             className="inline-block px-6 py-3 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors"
           >
             Sign In with Auth0
