@@ -4,13 +4,28 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
+    "build": "npm run db:push:force && next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "db:generate": "drizzle-kit generate",
+    "db:push": "drizzle-kit push",
+    "db:push:force": "drizzle-kit push --force",
+    "db:push:dev": "echo 'Using .env.local (DEV database)' && drizzle-kit push --force",
+    "db:push:prod": "echo '⚠️  PRODUCTION MIGRATION - Using .env (PROD database)' && echo 'Ensure .env.local is NOT loaded' && drizzle-kit push --force",
+    "db:studio": "drizzle-kit studio",
+    "seed:teams": "ts-node --project tsconfig.scripts.json scripts/seed-teams.ts",
+    "seed:users": "ts-node --project tsconfig.scripts.json scripts/seed-users-and-pools.ts",
+    "seed:entries": "ts-node --project tsconfig.scripts.json scripts/seed-pool-entries.ts",
+    "seed:selections": "ts-node --project tsconfig.scripts.json scripts/seed-entry-selections.ts",
+    "seed": "npm run seed:teams && npm run seed:users && npm run seed:entries && npm run seed:selections"
   },
   "dependencies": {
     "@auth0/nextjs-auth0": "^4.14.0",
+    "dotenv": "^17.4.2",
+    "drizzle-kit": "^0.31.10",
+    "drizzle-orm": "^0.45.2",
     "next": "16.1.6",
+    "postgres": "^3.4.9",
     "react": "19.2.3",
     "react-dom": "19.2.3"
   },
@@ -22,6 +37,8 @@
     "eslint": "^9",
     "eslint-config-next": "16.1.6",
     "tailwindcss": "^4",
-    "typescript": "^5"
+    "ts-node": "^10.9.2",
+    "typescript": "^5",
+    "xlsx": "^0.18.5"
   }
 }
