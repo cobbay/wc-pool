@@ -42,7 +42,7 @@ export default async function MatchResultsPage() {
       awayScore: match.awayScore,
       status: match.status,
     };
-  });
+  }).sort((a, b) => new Date(a.matchDate).getTime() - new Date(b.matchDate).getTime());
 
   const formatDate = (date: Date) => {
     return new Date(date).toLocaleDateString('en-US', {
