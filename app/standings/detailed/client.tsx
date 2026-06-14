@@ -111,8 +111,8 @@ export function DetailedStandingsTable({
             {/* Group Header Row */}
             <tr className="bg-indigo-100 border-b border-gray-300">
               {/* Empty cells for Entry and Total columns */}
-              <th className="sticky left-0 z-20 bg-indigo-100 border-r border-gray-300 min-w-[200px]"></th>
-              <th className="sticky left-[200px] z-20 bg-indigo-100 border-r border-gray-300 min-w-[80px]"></th>
+              <th className="sticky left-0 z-20 bg-indigo-100 border-r border-gray-300 min-w-[140px]"></th>
+              <th className="sticky left-[140px] z-20 bg-indigo-100 border-r border-gray-300 min-w-[60px]"></th>
 
               {/* Group header cells */}
               {groupInfo.map((group) => (
@@ -128,12 +128,12 @@ export function DetailedStandingsTable({
 
             <tr className="bg-gray-50 border-b border-gray-200">
               {/* Entry name column */}
-              <th className="sticky left-0 z-20 bg-gray-50 px-4 py-3 text-left text-sm font-semibold text-gray-900 border-r border-gray-200 min-w-[200px]">
+              <th className="sticky left-0 z-20 bg-gray-50 px-4 py-3 text-left text-sm font-semibold text-gray-900 border-r border-gray-200 min-w-[140px]">
                 Entry
               </th>
 
               {/* Total points column - now second */}
-              <th className="sticky left-[200px] z-20 bg-gray-50 px-4 py-3 text-center text-sm font-semibold text-gray-900 border-r border-gray-200 min-w-[80px]">
+              <th className="sticky left-[140px] z-20 bg-gray-50 px-4 py-3 text-center text-sm font-semibold text-gray-900 border-r border-gray-200 min-w-[60px]">
                 Total
               </th>
 
@@ -141,7 +141,7 @@ export function DetailedStandingsTable({
               {teamsByGroup.map((team) => (
                 <th
                   key={team.id}
-                  className="px-2 py-3 text-center text-xs font-semibold text-gray-900 border-r border-gray-200 min-w-[80px]"
+                  className="px-2 py-3 text-center text-xs font-semibold text-gray-900 border-r border-gray-200 min-w-[70px]"
                 >
                   <div className="flex flex-col items-center space-y-1">
                     <img
@@ -215,14 +215,14 @@ export function DetailedStandingsTable({
                 className={index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}
               >
                 {/* Entry name */}
-                <td className="sticky left-0 z-10 px-4 py-3 text-left font-semibold text-gray-900 border-r border-gray-200 min-w-[200px] bg-inherit">
+                <td className="sticky left-0 z-10 px-4 py-3 text-left font-semibold text-gray-900 border-r border-gray-200 min-w-[140px] bg-inherit">
                   <div className="truncate">
                     #{index + 1}. {entry.name}
                   </div>
                 </td>
 
-                {/* Total points - second column */}
-                <td className="sticky left-[200px] z-10 px-4 py-3 text-center text-lg font-bold text-blue-600 border-r border-gray-200 min-w-[80px] bg-inherit">
+                {/* Total column */}
+                <td className="sticky left-[140px] z-10 px-4 py-3 text-center text-lg font-bold text-blue-600 border-r border-gray-200 min-w-[60px] bg-inherit">
                   {entry.totalPoints}
                 </td>
 
