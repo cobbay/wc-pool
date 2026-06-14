@@ -29,6 +29,7 @@ export const teams = pgTable('teams', {
   code: text('code').notNull().unique(), // e.g., 'USA', 'BRA'
   flag: text('flag'),
   cost: integer('cost').notNull().default(0), // Budget cost to pick this team
+  group: text('group'), // World Cup group (e.g., 'A', 'B', etc.)
   createdAt: timestamp('created_at').defaultNow().notNull(),
 });
 
