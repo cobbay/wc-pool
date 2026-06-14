@@ -2,18 +2,15 @@ import { db } from '@/app/lib/db';
 import { matches, teams } from '@/app/lib/schema';
 import Link from 'next/link';
 import { getFlagImageUrl } from '@/app/lib/flag-utils';
-import { desc } from 'drizzle-orm';
 
 export const dynamic = 'force-dynamic';
 
 export default async function MatchResultsPage() {
-  // Fetch all matches with team information, ordered chronologically
-  const matchResults = await db
+  // Fetch all matches ordered chronologically
+  const allMatches = await db
     .select({
       id: matches.id,
       matchDate: matches.matchDate,
-      homeTeamName: teams.name,
-      homeTeamCode: teams.code,
       homeTeamId: matches.homeTeamId,
       homeScore: matches.homeScore,
       awayTeamId: matches.awayTeamId,
@@ -21,28 +18,31 @@ export default async function MatchResultsPage() {
       status: matches.status,
     })
     .from(matches)
-    .innerJoin(teams, (t) => t.id === matches.homeTeamId)
     .orderBy(matches.matchDate);
 
-  // Get away team info
-  const matchesWithAwayTeams = await Promise.all(
-    matchResults.map(async (match) => {
-      const awayTeam = await db
-        .select({
-          name: teams.name,
-          code: teams.code,
-        })
-        .from(teams)
-        .where((t) => t.id === match.awayTeamId)
-        .limit(1);
+  // Fetch all teams
+  const allTeams = await db.select().from(teams);
+  const teamMap = new Map(allTeams.map((t) => [t.id, t]));
 
-      return {
-        ...match,
-        awayTeamName: awayTeam[0]?.name || 'Unknown',
-        awayTeamCode: awayTeam[0]?.code || '',
-      };
-    })
-  );
+  // Combine match and team data
+  const matchesWithAwayTeams = allMatches.map((match) => {
+    const homeTeam = teamMap.get(match.homeTeamId);
+    const awayTeam = teamMap.get(match.awayTeamId);
+
+    return {
+      id: match.id,
+      matchDate: match.matchDate,
+      homeTeamName: homeTeam?.name || 'Unknown',
+      homeTeamCode: homeTeam?.code || '',
+      homeTeamId: match.homeTeamId,
+      homeScore: match.homeScore,
+      awayTeamId: match.awayTeamId,
+      awayTeamName: awayTeam?.name || 'Unknown',
+      awayTeamCode: awayTeam?.code || '',
+      awayScore: match.awayScore,
+      status: match.status,
+    };
+  });
 
   const formatDate = (date: Date) => {
     return new Date(date).toLocaleDateString('en-US', {
