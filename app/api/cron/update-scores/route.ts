@@ -22,7 +22,6 @@ export async function GET(request: NextRequest) {
     
     return NextResponse.json(
       {
-        success: result.success,
         message: `Score update completed - Updated: ${result.updated}/${result.total} matches`,
         ...result,
         timestamp: new Date().toISOString(),
