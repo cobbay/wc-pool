@@ -1,6 +1,6 @@
 import { db } from '@/app/lib/db';
 import { matches } from '@/app/lib/schema';
-import { eq } from 'drizzle-orm';
+import { eq, and } from 'drizzle-orm';
 
 const API_BASE = 'https://api.football-data.org/v4';
 
@@ -89,11 +89,7 @@ export async function fetchAndUpdateScores() {
         const existingMatch = await db
           .select()
           .from(matches)
-          .where((m) => {
-            const homeMatch = m.homeTeamId === homeTeamId;
-            const awayMatch = m.awayTeamId === awayTeamId;
-            return homeMatch && awayMatch;
-          })
+          .where(and(eq(matches.homeTeamId, homeTeamId), eq(matches.awayTeamId, awayTeamId)))
           .limit(1);
 
         if (existingMatch.length > 0) {
