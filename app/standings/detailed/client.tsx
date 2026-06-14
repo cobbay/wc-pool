@@ -50,7 +50,7 @@ export function DetailedStandingsTable({
       }
       return acc;
     },
-    { groups: [], current: null as { group: string | null; startIndex: number } | null }
+    { groups: [] as Array<{ name: string; startIndex: number; colSpan: number }>, current: null as { group: string | null; startIndex: number } | null }
   ).groups;
 
   useEffect(() => {
