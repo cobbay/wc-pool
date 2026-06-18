@@ -1,6 +1,7 @@
 'use client';
 
-import { useRef, useEffect } from 'react';
+import { useRef, useEffect, useState } from 'react';
+import { useUser } from '@auth0/nextjs-auth0/client';
 import { getFlagImageUrl } from '@/app/lib/flag-utils';
 
 type TeamStats = {
@@ -32,9 +33,29 @@ export function DetailedStandingsTable({
   teamsByGroup,
   entriesData,
 }: DetailedStandingsTableProps) {
+  const { user } = useUser();
+  const [claimedEntryId, setClaimedEntryId] = useState<number | null>(null);
   const tableScrollerRef = useRef<HTMLDivElement>(null);
   const topScrollRef = useRef<HTMLDivElement>(null);
   const scrollSyncRef = useRef(false);
+
+  useEffect(() => {
+    if (!user) return;
+
+    const fetchClaimedEntry = async () => {
+      try {
+        const res = await fetch(`/api/entries/claimed?userId=${user.sub}`);
+        const data = await res.json();
+        if (data.id) {
+          setClaimedEntryId(data.id);
+        }
+      } catch (err) {
+        console.error('Failed to fetch claimed entry:', err);
+      }
+    };
+
+    fetchClaimedEntry();
+  }, [user]);
 
   // Build group information
   const groupInfo = teamsByGroup.reduce(
@@ -213,12 +234,14 @@ export function DetailedStandingsTable({
             {entriesData.map((entry, index) => (
               <tr
                 key={entry.id}
-                className={index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}
+                className={`${
+                  claimedEntryId === entry.id ? 'bg-green-50 font-bold' : index % 2 === 0 ? 'bg-white' : 'bg-gray-50'
+                }`}
               >
                 {/* Entry name */}
                 <td className="sticky left-0 z-10 px-4 py-3 text-left font-semibold text-gray-900 border-r border-gray-200 min-w-[140px] bg-inherit">
                   <div className="truncate">
-                    {entry.rank}. {entry.name}
+                    {entry.rank}. {entry.name} {claimedEntryId === entry.id && '⭐'}
                   </div>
                 </td>
 

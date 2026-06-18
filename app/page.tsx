@@ -51,6 +51,17 @@ export default function Home() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <Link href="/claim-entry" className="group">
+          <div className="bg-white dark:bg-gray-800 rounded-lg p-6 shadow hover:shadow-lg transition-shadow h-full border-2 border-green-300">
+            <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2 group-hover:text-green-600 transition-colors">
+              Claim Your Entry
+            </h2>
+            <p className="text-gray-600 dark:text-gray-300">
+              Select an entry to highlight on standings
+            </p>
+          </div>
+        </Link>
+
         <Link href="/entries" className="group">
           <div className="bg-white dark:bg-gray-800 rounded-lg p-6 shadow hover:shadow-lg transition-shadow h-full">
             <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2 group-hover:text-blue-600 transition-colors">

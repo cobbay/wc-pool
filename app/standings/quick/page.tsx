@@ -2,6 +2,7 @@ import { db } from '@/app/lib/db';
 import { poolEntries, pools, entryTeamSelections, teams } from '@/app/lib/schema';
 import { eq } from 'drizzle-orm';
 import Link from 'next/link';
+import { QuickStandingsClient } from './client';
 
 export const dynamic = 'force-dynamic';
 
@@ -102,26 +103,7 @@ export default async function QuickStandingsPage() {
             <p className="text-gray-600">No entries yet.</p>
           </div>
         ) : (
-          <div className="bg-white rounded-lg shadow overflow-hidden">
-            <table className="w-full">
-              <thead>
-                <tr className="bg-gray-50 border-b border-gray-200">
-                  <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900">Rank</th>
-                  <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900">Entry</th>
-                  <th className="px-6 py-4 text-right text-sm font-semibold text-gray-900">Total Points</th>
-                </tr>
-              </thead>
-              <tbody>
-                {entriesWithRanking.map((entry) => (
-                  <tr key={entry.name} className="border-b border-gray-200 hover:bg-gray-50">
-                    <td className="px-6 py-4 text-sm font-semibold text-gray-900">{entry.rank}</td>
-                    <td className="px-6 py-4 text-sm text-gray-900">{entry.name}</td>
-                    <td className="px-6 py-4 text-sm font-semibold text-blue-600 text-right">{entry.totalPoints}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          <QuickStandingsClient entries={entriesWithRanking} />
         )}
       </div>
     </div>
