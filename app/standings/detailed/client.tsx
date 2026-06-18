@@ -20,6 +20,7 @@ type EntryData = {
   totalPoints: number;
   pointsByTeam: { [teamId: number]: number };
   shortTeamIds: Set<number>;
+  rank: string;
 };
 
 type DetailedStandingsTableProps = {
@@ -217,7 +218,7 @@ export function DetailedStandingsTable({
                 {/* Entry name */}
                 <td className="sticky left-0 z-10 px-4 py-3 text-left font-semibold text-gray-900 border-r border-gray-200 min-w-[140px] bg-inherit">
                   <div className="truncate">
-                    #{index + 1}. {entry.name}
+                    {entry.rank}. {entry.name}
                   </div>
                 </td>
 
