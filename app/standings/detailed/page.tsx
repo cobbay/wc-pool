@@ -118,6 +118,21 @@ export default async function DetailedStandingsPage() {
   // Sort entries by points descending
   entriesData.sort((a, b) => b.totalPoints - a.totalPoints);
 
+  // Calculate tie-aware rankings
+  const entriesWithRanking = entriesData.map((entry, index) => {
+    // Find first index with this score
+    let rankIndex = 0;
+    for (let i = 0; i < index; i++) {
+      if (entriesData[i].totalPoints !== entry.totalPoints) {
+        rankIndex = i + 1;
+      }
+    }
+    return {
+      ...entry,
+      rank: `T-${rankIndex + 1}`,
+    };
+  });
+
   // Sort teams by group
   const teamsByGroup = Array.from(teamStats.values()).sort((a, b) => {
     if (!a.group || !b.group) return 0;
@@ -144,7 +159,7 @@ export default async function DetailedStandingsPage() {
             <p className="text-gray-600">No entries yet.</p>
           </div>
         ) : (
-          <DetailedStandingsTable teamsByGroup={teamsByGroup} entriesData={entriesData} />
+          <DetailedStandingsTable teamsByGroup={teamsByGroup} entriesData={entriesWithRanking} />
         )}
       </div>
     </div>

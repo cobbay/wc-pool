@@ -67,6 +67,21 @@ export default async function QuickStandingsPage() {
     return a.name.localeCompare(b.name);
   });
 
+  // Calculate tie-aware rankings
+  const entriesWithRanking = sortedEntries.map((entry, index) => {
+    // Find first index with this score
+    let rankIndex = 0;
+    for (let i = 0; i < index; i++) {
+      if (sortedEntries[i].totalPoints !== entry.totalPoints) {
+        rankIndex = i + 1;
+      }
+    }
+    return {
+      ...entry,
+      rank: `T-${rankIndex + 1}`,
+    };
+  });
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
@@ -97,9 +112,9 @@ export default async function QuickStandingsPage() {
                 </tr>
               </thead>
               <tbody>
-                {sortedEntries.map((entry, index) => (
+                {entriesWithRanking.map((entry) => (
                   <tr key={entry.name} className="border-b border-gray-200 hover:bg-gray-50">
-                    <td className="px-6 py-4 text-sm font-semibold text-gray-900">{index + 1}</td>
+                    <td className="px-6 py-4 text-sm font-semibold text-gray-900">{entry.rank}</td>
                     <td className="px-6 py-4 text-sm text-gray-900">{entry.name}</td>
                     <td className="px-6 py-4 text-sm font-semibold text-blue-600 text-right">{entry.totalPoints}</td>
                   </tr>
