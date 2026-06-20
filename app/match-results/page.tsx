@@ -2,6 +2,7 @@ import { db } from '@/app/lib/db';
 import { matches, teams } from '@/app/lib/schema';
 import Link from 'next/link';
 import { getFlagImageUrl } from '@/app/lib/flag-utils';
+import RefreshScoresButton from '@/app/ui/refresh-scores-button';
 
 export const dynamic = 'force-dynamic';
 
@@ -45,6 +46,8 @@ export default async function MatchResultsPage() {
   }).sort((a, b) => new Date(a.matchDate).getTime() - new Date(b.matchDate).getTime());
 
   const formatDate = (date: Date) => {
+    // Pin to a fixed timezone so server-rendered HTML and client hydration always agree
+    // (toLocaleDateString otherwise uses the server's vs. browser's local timezone).
     return new Date(date).toLocaleDateString('en-US', {
       month: 'short',
       day: 'numeric',
@@ -52,6 +55,7 @@ export default async function MatchResultsPage() {
       hour: 'numeric',
       minute: '2-digit',
       hour12: true,
+      timeZone: 'America/New_York',
     });
   };
 
@@ -60,11 +64,16 @@ export default async function MatchResultsPage() {
       {/* Header */}
       <div className="bg-white border-b border-gray-200">
         <div className="max-w-6xl mx-auto px-8 py-6">
-          <Link href="/" className="text-blue-600 hover:text-blue-800 mb-4 inline-block">
-            ← Home
-          </Link>
-          <h1 className="text-3xl font-bold text-gray-900">Match Results</h1>
-          <p className="text-gray-600 mt-1">World Cup 2026 matches in chronological order</p>
+          <div className="flex items-start justify-between">
+            <div>
+              <Link href="/" className="text-blue-600 hover:text-blue-800 mb-4 inline-block">
+                ← Home
+              </Link>
+              <h1 className="text-3xl font-bold text-gray-900">Match Results</h1>
+              <p className="text-gray-600 mt-1">World Cup 2026 matches in chronological order</p>
+            </div>
+            <RefreshScoresButton />
+          </div>
         </div>
       </div>
 
