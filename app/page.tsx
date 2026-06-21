@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { useUser } from '@auth0/nextjs-auth0/client';
+import { isAdmin } from '@/app/lib/auth-utils';
 
 export default function Home() {
   const { user, isLoading } = useUser();
@@ -116,6 +117,19 @@ export default function Home() {
             </p>
           </div>
         </Link>
+
+        {isAdmin(user ?? undefined) && (
+          <Link href="/admin" className="group">
+            <div className="bg-white dark:bg-gray-800 rounded-lg p-6 shadow hover:shadow-lg transition-shadow h-full border-2 border-purple-300">
+              <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2 group-hover:text-purple-600 transition-colors">
+                Admin
+              </h2>
+              <p className="text-gray-600 dark:text-gray-300">
+                Refresh match and pool scores
+              </p>
+            </div>
+          </Link>
+        )}
 
         <div className="bg-white dark:bg-gray-800 rounded-lg p-6 shadow">
           <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
