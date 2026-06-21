@@ -77,9 +77,10 @@ export default async function QuickStandingsPage() {
         rankIndex = i + 1;
       }
     }
+    const isTied = sortedEntries.filter((e) => e.totalPoints === entry.totalPoints).length > 1;
     return {
       ...entry,
-      rank: `T-${rankIndex + 1}`,
+      rank: isTied ? `T-${rankIndex + 1}` : `${rankIndex + 1}`,
     };
   });
 
