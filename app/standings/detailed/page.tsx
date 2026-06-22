@@ -70,7 +70,7 @@ export default async function DetailedStandingsPage() {
   
   for (const team of allTeams) {
     const selectionsForTeam = allSelections.filter(s => s.teamId === team.id);
-    const timesChosen = selectionsForTeam.length;
+    const timesChosen = selectionsForTeam.filter(s => !s.isShort).length;
     const timesShorted = selectionsForTeam.filter(s => s.isShort).length;
     const totalPointsEarned = selectionsForTeam.reduce((sum, s) => sum + (s.pointsEarned || 0), 0);
     
@@ -127,9 +127,10 @@ export default async function DetailedStandingsPage() {
         rankIndex = i + 1;
       }
     }
+    const isTied = entriesData.filter((e) => e.totalPoints === entry.totalPoints).length > 1;
     return {
       ...entry,
-      rank: `T-${rankIndex + 1}`,
+      rank: isTied ? `T-${rankIndex + 1}` : `${rankIndex + 1}`,
     };
   });
 

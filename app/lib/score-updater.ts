@@ -1,61 +1,45 @@
 import { db } from '@/app/lib/db';
-import { matches } from '@/app/lib/schema';
+import { matches, teams } from '@/app/lib/schema';
 import { eq, and } from 'drizzle-orm';
 
 const API_BASE = 'https://api.football-data.org/v4';
 
-// Team name to database ID mapping (from seed-matches.ts)
-const teamNameToId: Record<string, number> = {
-  'Mexico': 1,
-  'South Africa': 2,
-  'South Korea': 3,
-  'Czech Republic': 4,
-  'Canada': 5,
-  'Bosnia and Herzegovina': 6,
-  'Qatar': 7,
-  'Switzerland': 8,
-  'Brazil': 9,
-  'Morocco': 10,
-  'Haiti': 11,
-  'Scotland': 12,
-  'Germany': 13,
-  'Curaçao': 14,
-  'Ivory Coast': 15,
-  'Ecuador': 16,
-  'Netherlands': 17,
-  'Japan': 18,
-  'Sweden': 19,
-  'Tunisia': 20,
-  'Belgium': 21,
-  'Egypt': 22,
-  'Iran': 23,
-  'New Zealand': 24,
-  'Spain': 25,
-  'Cape Verde': 26,
-  'Saudi Arabia': 27,
-  'Uruguay': 28,
-  'France': 29,
-  'Senegal': 30,
-  'Iraq': 31,
-  'Norway': 32,
-  'Argentina': 33,
-  'Algeria': 34,
-  'Austria': 35,
-  'Jordan': 36,
-  'Portugal': 37,
-  'DR Congo': 38,
-  'Uzbekistan': 39,
-  'Colombia': 40,
-  'England': 41,
-  'Croatia': 42,
-  'Ghana': 43,
-  'Panama': 44,
+// football-data.org uses different team names than our seeded `teams` table for some countries.
+const API_NAME_ALIASES: Record<string, string> = {
+  'Czech Republic': 'Czechia',
+  'Bosnia and Herzegovina': 'Bosnia & Herzegovina',
+  'Bosnia-Herzegovina': 'Bosnia & Herzegovina',
+  'IR Iran': 'Iran',
+  'Korea Republic': 'South Korea',
+  'Turkey': 'Türkiye',
+  'United States of America': 'United States',
+  "Côte d'Ivoire": 'Ivory Coast',
+  'Cape Verde Islands': 'Cape Verde',
+  'Congo DR': 'DR Congo',
 };
+
+function resolveTeamName(apiName: string): string {
+  return API_NAME_ALIASES[apiName] || apiName;
+}
+
+// football-data.org statuses (FINISHED, IN_PLAY, PAUSED, TIMED, SCHEDULED, POSTPONED, ...)
+// vs. our schema's lowercase convention ('pending' | 'live' | 'completed').
+const API_STATUS_TO_DB_STATUS: Record<string, string> = {
+  FINISHED: 'completed',
+  IN_PLAY: 'live',
+  PAUSED: 'live',
+  TIMED: 'pending',
+  SCHEDULED: 'pending',
+};
+
+function resolveStatus(apiStatus: string): string {
+  return API_STATUS_TO_DB_STATUS[apiStatus] || apiStatus.toLowerCase();
+}
 
 export async function fetchAndUpdateScores() {
   try {
     const apiKey = process.env.FOOTBALL_DATA_API_KEY;
-    
+
     if (!apiKey) {
       return { success: false, error: 'FOOTBALL_DATA_API_KEY not configured' };
     }
@@ -72,13 +56,18 @@ export async function fetchAndUpdateScores() {
     const data = await response.json();
     const matches_data = data.matches || [];
 
+    const teamRows = await db.select().from(teams);
+    const teamIdByName = new Map(teamRows.map((t) => [t.name, t.id]));
+
     let updated = 0;
     const errors: string[] = [];
 
     for (const match of matches_data) {
       try {
-        const homeTeamId = teamNameToId[match.homeTeam.name];
-        const awayTeamId = teamNameToId[match.awayTeam.name];
+        const homeName = resolveTeamName(match.homeTeam.name);
+        const awayName = resolveTeamName(match.awayTeam.name);
+        const homeTeamId = teamIdByName.get(homeName);
+        const awayTeamId = teamIdByName.get(awayName);
 
         if (!homeTeamId || !awayTeamId) {
           errors.push(`Team mapping not found: ${match.homeTeam.name} vs ${match.awayTeam.name}`);
@@ -99,7 +88,7 @@ export async function fetchAndUpdateScores() {
             .set({
               homeScore: match.score.fullTime.home,
               awayScore: match.score.fullTime.away,
-              status: match.status,
+              status: resolveStatus(match.status),
             })
             .where(eq(matches.id, existingMatch[0].id));
 
