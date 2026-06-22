@@ -5,9 +5,11 @@ import { NextResponse, NextRequest } from 'next/server';
 
 export async function POST(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
+
     // Get user ID from request body
     const body = await req.json();
     const userId = body.userId as string;
@@ -19,7 +21,7 @@ export async function POST(
       );
     }
 
-    const entryId = parseInt(params.id, 10);
+    const entryId = parseInt(id, 10);
     if (isNaN(entryId)) {
       return NextResponse.json(
         { error: 'Invalid entry ID' },
