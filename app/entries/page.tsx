@@ -1,5 +1,5 @@
 import { db } from '@/app/lib/db';
-import { poolEntries, pools, entryTeamSelections } from '@/app/lib/schema';
+import { poolEntries, pools, entryTeamSelections, teams } from '@/app/lib/schema';
 import { eq } from 'drizzle-orm';
 import Link from 'next/link';
 
@@ -36,21 +36,42 @@ export default async function EntriesPage() {
     .from(poolEntries)
     .where(eq(poolEntries.poolId, pool.id));
 
-  // For each entry, count teams and get total points
+  // For each entry, calculate stats from actual team selections
   const entriesWithStats = await Promise.all(
     entries.map(async entry => {
-      // Get team selections count
+      // Get team selections with team cost info
       const teamSelections = await db
-        .select()
+        .select({
+          teamId: entryTeamSelections.teamId,
+          isShort: entryTeamSelections.isShort,
+          cost: teams.cost,
+          pointsEarned: entryTeamSelections.pointsEarned,
+        })
         .from(entryTeamSelections)
+        .innerJoin(teams, eq(entryTeamSelections.teamId, teams.id))
         .where(eq(entryTeamSelections.entryId, entry.id));
 
       const teamCount = teamSelections.length;
-      const totalPoints = teamSelections.reduce((sum, sel) => sum + (sel.pointsEarned || 0), 0);
+      
+      // Calculate budget spent: sum all costs except short pick subtracts its cost
+      let budgetUsed = 0;
+      let totalPoints = 0;
+      
+      teamSelections.forEach(sel => {
+        if (sel.isShort) {
+          // Short pick recovers budget (negative cost)
+          budgetUsed -= sel.cost;
+        } else {
+          // Long pick costs budget
+          budgetUsed += sel.cost;
+        }
+        totalPoints += sel.pointsEarned || 0;
+      });
 
       return {
         ...entry,
         teamCount,
+        budgetUsed,
         totalPoints,
       };
     })
@@ -65,7 +86,7 @@ export default async function EntriesPage() {
             ← Home
           </Link>
           <h1 className="text-3xl font-bold text-gray-900">{pool.name}</h1>
-          <p className="text-gray-600 mt-1">{entriesWithStats.length} entries</p>
+          <p className="text-gray-600 mt-1">{entriesWithStats.length} entries, sorted alphabetically</p>
         </div>
       </div>
 
@@ -76,8 +97,8 @@ export default async function EntriesPage() {
             <p className="text-gray-600">No entries yet.</p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {entriesWithStats.map(entry => (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            {entriesWithStats.sort((a, b) => a.name.localeCompare(b.name)).map(entry => (
               <Link key={entry.id} href={`/entries/${entry.id}`}>
                 <div className="bg-white rounded-lg shadow p-6 hover:shadow-lg transition-shadow cursor-pointer h-full">
                   <h2 className="text-lg font-semibold text-gray-900 mb-4 truncate">
@@ -86,18 +107,18 @@ export default async function EntriesPage() {
 
                   <div className="space-y-3">
                     <div className="flex justify-between">
+                      <span className="text-sm text-gray-600">Total Points</span>
+                      <span className="font-semibold text-blue-600 text-lg">{entry.totalPoints}</span>
+                    </div>
+
+                    <div className="flex justify-between">
                       <span className="text-sm text-gray-600">Teams</span>
                       <span className="font-semibold text-gray-900">{entry.teamCount}</span>
                     </div>
 
                     <div className="flex justify-between">
-                      <span className="text-sm text-gray-600">Budget Used</span>
-                      <span className="font-semibold text-gray-900">{entry.budgetSpent} / 100</span>
-                    </div>
-
-                    <div className="flex justify-between">
-                      <span className="text-sm text-gray-600">Total Points</span>
-                      <span className="font-semibold text-blue-600 text-lg">{entry.totalPoints}</span>
+                      <span className="text-sm text-gray-600">Current ranking</span>
+                      <span className="font-semibold text-gray-900">1st</span>
                     </div>
                   </div>
 

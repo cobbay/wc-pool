@@ -1,7 +1,8 @@
 import { db } from '@/app/lib/db';
-import { poolEntries, entryTeamSelections, teams, pools } from '@/app/lib/schema';
-import { eq, and } from 'drizzle-orm';
+import { poolEntries, entryTeamSelections, teams, pools, matches } from '@/app/lib/schema';
+import { eq, and, or, gte } from 'drizzle-orm';
 import Link from 'next/link';
+import { getFlagImageUrl } from '@/app/lib/flag-utils';
 
 export const dynamic = 'force-dynamic';
 
@@ -64,15 +65,10 @@ export default async function EntryPage({ params }: EntryPageProps) {
   const entry = entryData[0];
 
   // Fetch pool name
-  const poolData = await db
-    .select({ name: pools.name })
-    .from(pools)
-    .where(eq(pools.id, entry.poolId));
-
-  const poolName = poolData[0]?.name || 'Unknown Pool';
+  const poolName = 'East Rutherford Project 2026';
 
   // Fetch team selections for this entry
-  const teamSelections = await db
+  const teamSelectionsBase = await db
     .select({
       selectionId: entryTeamSelections.id,
       teamId: entryTeamSelections.teamId,
@@ -88,6 +84,57 @@ export default async function EntryPage({ params }: EntryPageProps) {
     .where(eq(entryTeamSelections.entryId, entry.id))
     .orderBy(entryTeamSelections.isShort); // Short picks last
 
+  // Fetch next match info for each team
+  const teamSelections = await Promise.all(
+    teamSelectionsBase.map(async (selection) => {
+      // Get all upcoming matches for this team
+      const upcomingMatchesData = await db
+        .select({
+          id: matches.id,
+          matchDate: matches.matchDate,
+          homeTeamId: matches.homeTeamId,
+          awayTeamId: matches.awayTeamId,
+          homeTeamName: teams.name,
+        })
+        .from(matches)
+        .innerJoin(teams, eq(matches.homeTeamId, teams.id))
+        .where(
+          and(
+            or(
+              eq(matches.homeTeamId, selection.teamId),
+              eq(matches.awayTeamId, selection.teamId)
+            ),
+            gte(matches.matchDate, new Date())
+          )
+        )
+        .orderBy(matches.matchDate);
+
+      let nextMatch = null;
+      if (upcomingMatchesData.length > 0) {
+        const match = upcomingMatchesData[0];
+        const isHome = match.homeTeamId === selection.teamId;
+        const opponentTeamId = isHome ? match.awayTeamId : match.homeTeamId;
+        
+        // Get opponent name
+        const opponentData = await db
+          .select({ name: teams.name })
+          .from(teams)
+          .where(eq(teams.id, opponentTeamId));
+        
+        nextMatch = {
+          matchDate: match.matchDate,
+          opponent: opponentData[0]?.name || 'Unknown',
+          isHome: isHome,
+        };
+      }
+
+      return {
+        ...selection,
+        nextMatch,
+      };
+    })
+  );
+
   // Calculate totals
   const totalCost = teamSelections.reduce((sum, sel) => {
     const cost = sel.isShort ? sel.cost * -1 : sel.cost; // Short gives back half
@@ -96,6 +143,15 @@ export default async function EntryPage({ params }: EntryPageProps) {
   const totalPoints = teamSelections.reduce((sum, sel) => sum + (sel.pointsEarned || 0), 0);
   const shortPick = teamSelections.find(sel => sel.isShort);
   const longPicks = teamSelections.filter(sel => !sel.isShort);
+
+  // Find team with next match
+  const nextMatchTeam = teamSelections
+    .filter(sel => sel.nextMatch)
+    .sort((a, b) => {
+      const dateA = a.nextMatch?.matchDate ? new Date(a.nextMatch.matchDate).getTime() : Infinity;
+      const dateB = b.nextMatch?.matchDate ? new Date(b.nextMatch.matchDate).getTime() : Infinity;
+      return dateA - dateB;
+    })[0] || null;
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -120,50 +176,43 @@ export default async function EntryPage({ params }: EntryPageProps) {
 
       {/* Main Content */}
       <div className="max-w-4xl mx-auto px-8 py-8">
-        {/* Budget Summary */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-          <div className="bg-white rounded-lg shadow p-6">
-            <div className="text-sm text-gray-600">Teams Selected</div>
-            <div className="text-2xl font-bold text-gray-900">{teamSelections.length}</div>
-          </div>
-          <div className="bg-white rounded-lg shadow p-6">
-            <div className="text-sm text-gray-600">Total Budget Used</div>
-            <div className="text-2xl font-bold text-gray-900">{totalCost} / 100</div>
-          </div>
-          <div className="bg-white rounded-lg shadow p-6">
-            <div className="text-sm text-gray-600">Budget Remaining</div>
-            <div className={`text-2xl font-bold ${100 - totalCost >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-              {100 - totalCost}
-            </div>
-          </div>
-        </div>
-
-        {/* Long Picks */}
+        {/* Standard Picks */}
         {longPicks.length > 0 && (
           <div className="mb-8">
-            <h2 className="text-xl font-bold text-gray-900 mb-4">Long Picks</h2>
+            <h2 className="text-xl font-bold text-gray-900 mb-4">Standard Picks</h2>
             <div className="space-y-3">
-              {longPicks.map(selection => (
-                <div
-                  key={selection.teamId}
-                  className="bg-white rounded-lg shadow p-4 flex items-center justify-between hover:shadow-md transition-shadow"
-                >
-                  <div className="flex items-center gap-4 flex-1">
-                    {selection.teamFlag && (
-                      <span className="text-4xl">{selection.teamFlag}</span>
-                    )}
-                    <div>
-                      <h3 className="font-semibold text-gray-900">{selection.teamName}</h3>
-                      <p className="text-sm text-gray-500">{selection.teamCode}</p>
+              {longPicks.map(selection => {
+                const isNextMatch = nextMatchTeam?.teamId === selection.teamId;
+                return (
+                  <div
+                    key={selection.teamId}
+                    className={`rounded-lg shadow p-4 flex items-center justify-between hover:shadow-md transition-shadow bg-white`}
+                  >
+                    <div className="flex items-center gap-4 flex-1">
+                      {selection.teamCode && (
+                        <img
+                          src={getFlagImageUrl(selection.teamCode)}
+                          alt={selection.teamName}
+                          className="w-16 h-auto rounded"
+                          loading="lazy"
+                        />
+                      )}
+                      <div className="flex-1">
+                        <h3 className="font-semibold text-lg text-gray-900">{selection.teamName}</h3>
+                        {selection.nextMatch && (
+                          <div className={`text-xs mt-1 ${isNextMatch ? 'text-green-600 font-bold' : 'text-gray-600'}`}>
+                            Next: {new Date(selection.nextMatch.matchDate).toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' })}, {new Date(selection.nextMatch.matchDate).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true, timeZone: 'America/Chicago' })} vs {selection.nextMatch.opponent}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <div className="text-lg font-bold text-gray-900">{selection.pointsEarned || 0} {(selection.pointsEarned || 0) === 1 ? 'point' : 'points'}</div>
+                      <div className="text-xs text-gray-500 mt-1">Cost {selection.cost} pts</div>
                     </div>
                   </div>
-                  <div className="text-right">
-                    <div className="text-sm text-gray-600">Cost</div>
-                    <div className="text-lg font-bold text-gray-900">{selection.cost} pts</div>
-                    <div className="text-xs text-gray-500 mt-1">{selection.pointsEarned || 0} points earned</div>
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
         )}
@@ -172,29 +221,46 @@ export default async function EntryPage({ params }: EntryPageProps) {
         {shortPick && (
           <div className="mb-8">
             <h2 className="text-xl font-bold text-gray-900 mb-4">Short Pick</h2>
-            <div className="bg-gradient-to-r from-amber-50 to-orange-50 rounded-lg shadow-md p-6 border-l-4 border-orange-500">
+            <div className={`rounded-lg shadow-md p-6 bg-white`}>
               <div className="flex items-center justify-between">
-                <div className="flex items-center gap-4">
-                  {shortPick.teamFlag && (
-                    <span className="text-6xl">{shortPick.teamFlag}</span>
+                <div className="flex items-center gap-4 flex-1">
+                  {shortPick.teamCode && (
+                    <img
+                      src={getFlagImageUrl(shortPick.teamCode)}
+                      alt={shortPick.teamName}
+                      className="w-20 h-auto rounded"
+                      loading="lazy"
+                    />
                   )}
                   <div>
-                    <h3 className="text-xl font-semibold text-gray-900">{shortPick.teamName}</h3>
-                    <p className="text-sm text-gray-600">{shortPick.teamCode}</p>
-                    <p className="text-xs text-gray-500 mt-2">
-                      Recovers {shortPick.cost} pts if team scores 0 points
-                    </p>
+                    <h3 className="font-semibold text-lg text-gray-900">{shortPick.teamName}</h3>
+                    {shortPick.nextMatch && (
+                      <div className={`text-xs mt-2 ${nextMatchTeam?.teamId === shortPick.teamId ? 'text-green-600 font-bold' : 'text-gray-600'}`}>
+                        Next: {new Date(shortPick.nextMatch.matchDate).toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' })}, {new Date(shortPick.nextMatch.matchDate).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true, timeZone: 'America/Chicago' })} vs {shortPick.nextMatch.opponent}
+                      </div>
+                    )}
                   </div>
                 </div>
                 <div className="text-right">
-                  <div className="text-sm text-gray-600">Recovery Points</div>
-                  <div className="text-2xl font-bold text-orange-600">+{shortPick.cost}</div>
-                  <div className="text-xs text-gray-500 mt-1">{shortPick.pointsEarned || 0} points earned</div>
+                  <div className="text-lg font-bold text-gray-900">{shortPick.pointsEarned || 0} {(shortPick.pointsEarned || 0) === 1 ? 'point' : 'points'}</div>
+                  <div className="text-xs text-gray-500 mt-1">Recovery {shortPick.cost} pts</div>
                 </div>
               </div>
             </div>
           </div>
         )}
+
+        {/* Budget Summary */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
+          <div className="bg-white rounded-lg shadow p-6">
+            <div className="text-sm text-gray-600">Teams Selected</div>
+            <div className="text-2xl font-bold text-gray-900">{teamSelections.length}</div>
+          </div>
+          <div className="bg-white rounded-lg shadow p-6">
+            <div className="text-sm text-gray-600">Total Budget Used</div>
+            <div className="text-2xl font-bold text-gray-900">{totalCost} / 100</div>
+          </div>
+        </div>
 
         {/* No Teams */}
         {teamSelections.length === 0 && (

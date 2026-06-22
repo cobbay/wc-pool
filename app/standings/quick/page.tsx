@@ -1,0 +1,112 @@
+import { db } from '@/app/lib/db';
+import { poolEntries, pools, entryTeamSelections, teams } from '@/app/lib/schema';
+import { eq } from 'drizzle-orm';
+import Link from 'next/link';
+import { QuickStandingsClient } from './client';
+
+export const dynamic = 'force-dynamic';
+
+export default async function QuickStandingsPage() {
+  // Get the main pool
+  const poolData = await db
+    .select()
+    .from(pools)
+    .where(eq(pools.id, 1));
+
+  if (poolData.length === 0) {
+    return (
+      <div className="min-h-screen bg-gray-50 p-8">
+        <div className="max-w-4xl mx-auto">
+          <Link href="/" className="text-blue-600 hover:text-blue-800 mb-4 inline-block">
+            ← Home
+          </Link>
+          <div className="bg-white rounded-lg shadow p-8 text-center">
+            <h1 className="text-2xl font-bold text-gray-900 mb-2">No Pool Found</h1>
+            <p className="text-gray-600">Please set up a pool first.</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  const pool = poolData[0];
+
+  // Fetch all entries for this pool
+  const entries = await db
+    .select()
+    .from(poolEntries)
+    .where(eq(poolEntries.poolId, pool.id));
+
+  // For each entry, calculate total points
+  const entriesWithPoints = await Promise.all(
+    entries.map(async entry => {
+      const teamSelections = await db
+        .select({
+          pointsEarned: entryTeamSelections.pointsEarned,
+          isShort: entryTeamSelections.isShort,
+        })
+        .from(entryTeamSelections)
+        .where(eq(entryTeamSelections.entryId, entry.id));
+
+      const totalPoints = teamSelections.reduce((sum, sel) => {
+        const points = sel.pointsEarned || 0;
+        return sel.isShort ? sum - points : sum + points;
+      }, 0);
+
+      return {
+        name: entry.name,
+        totalPoints,
+      };
+    })
+  );
+
+  // Sort by points descending, then by name ascending for ties
+  const sortedEntries = entriesWithPoints.sort((a, b) => {
+    if (b.totalPoints !== a.totalPoints) {
+      return b.totalPoints - a.totalPoints;
+    }
+    return a.name.localeCompare(b.name);
+  });
+
+  // Calculate tie-aware rankings
+  const entriesWithRanking = sortedEntries.map((entry, index) => {
+    // Find first index with this score
+    let rankIndex = 0;
+    for (let i = 0; i < index; i++) {
+      if (sortedEntries[i].totalPoints !== entry.totalPoints) {
+        rankIndex = i + 1;
+      }
+    }
+    const isTied = sortedEntries.filter((e) => e.totalPoints === entry.totalPoints).length > 1;
+    return {
+      ...entry,
+      rank: isTied ? `T-${rankIndex + 1}` : `${rankIndex + 1}`,
+    };
+  });
+
+  return (
+    <div className="min-h-screen bg-gray-50">
+      {/* Header */}
+      <div className="bg-white border-b border-gray-200">
+        <div className="max-w-4xl mx-auto px-8 py-6">
+          <Link href="/" className="text-blue-600 hover:text-blue-800 mb-4 inline-block">
+            ← Home
+          </Link>
+          <h1 className="text-3xl font-bold text-gray-900">Quick Standings</h1>
+          <p className="text-gray-600 mt-1">Entries and total points only</p>
+        </div>
+      </div>
+
+      {/* Standings Table */}
+      <div className="max-w-4xl mx-auto px-8 py-8">
+        {sortedEntries.length === 0 ? (
+          <div className="bg-white rounded-lg shadow p-8 text-center">
+            <p className="text-gray-600">No entries yet.</p>
+          </div>
+        ) : (
+          <QuickStandingsClient entries={entriesWithRanking} />
+        )}
+      </div>
+    </div>
+  );
+}

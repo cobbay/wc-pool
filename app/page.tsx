@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { useUser } from '@auth0/nextjs-auth0/client';
+import { isAdmin } from '@/app/lib/auth-utils';
 
 export default function Home() {
   const { user, isLoading } = useUser();
@@ -50,14 +51,14 @@ export default function Home() {
         </p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <Link href="/pool" className="group">
-          <div className="bg-white dark:bg-gray-800 rounded-lg p-6 shadow hover:shadow-lg transition-shadow h-full">
-            <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2 group-hover:text-blue-600 transition-colors">
-              Pool Info
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <Link href="/claim-entry" className="group">
+          <div className="bg-white dark:bg-gray-800 rounded-lg p-6 shadow hover:shadow-lg transition-shadow h-full border-2 border-green-300">
+            <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2 group-hover:text-green-600 transition-colors">
+              Claim Your Entry
             </h2>
             <p className="text-gray-600 dark:text-gray-300">
-              View and manage your pool participation
+              Select an entry to highlight on standings
             </p>
           </div>
         </Link>
@@ -72,6 +73,63 @@ export default function Home() {
             </p>
           </div>
         </Link>
+
+        <Link href="/standings/quick" className="group">
+          <div className="bg-white dark:bg-gray-800 rounded-lg p-6 shadow hover:shadow-lg transition-shadow h-full">
+            <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2 group-hover:text-blue-600 transition-colors">
+              Quick Standings
+            </h2>
+            <p className="text-gray-600 dark:text-gray-300">
+              Entries and total points only
+            </p>
+          </div>
+        </Link>
+
+        <Link href="/standings/detailed" className="group">
+          <div className="bg-white dark:bg-gray-800 rounded-lg p-6 shadow hover:shadow-lg transition-shadow h-full">
+            <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2 group-hover:text-blue-600 transition-colors">
+              Detailed Standings
+            </h2>
+            <p className="text-gray-600 dark:text-gray-300">
+              Full team grid with points
+            </p>
+          </div>
+        </Link>
+
+        <Link href="/rules" className="group">
+          <div className="bg-white dark:bg-gray-800 rounded-lg p-6 shadow hover:shadow-lg transition-shadow h-full">
+            <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2 group-hover:text-blue-600 transition-colors">
+              Rules & Scoring
+            </h2>
+            <p className="text-gray-600 dark:text-gray-300">
+              Learn the rules and point system
+            </p>
+          </div>
+        </Link>
+
+        <Link href="/match-results" className="group">
+          <div className="bg-white dark:bg-gray-800 rounded-lg p-6 shadow hover:shadow-lg transition-shadow h-full">
+            <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2 group-hover:text-blue-600 transition-colors">
+              Match Results
+            </h2>
+            <p className="text-gray-600 dark:text-gray-300">
+              World Cup matches in chronological order
+            </p>
+          </div>
+        </Link>
+
+        {isAdmin(user ?? undefined) && (
+          <Link href="/admin" className="group">
+            <div className="bg-white dark:bg-gray-800 rounded-lg p-6 shadow hover:shadow-lg transition-shadow h-full border-2 border-purple-300">
+              <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2 group-hover:text-purple-600 transition-colors">
+                Admin
+              </h2>
+              <p className="text-gray-600 dark:text-gray-300">
+                Refresh match and pool scores
+              </p>
+            </div>
+          </Link>
+        )}
 
         <div className="bg-white dark:bg-gray-800 rounded-lg p-6 shadow">
           <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
